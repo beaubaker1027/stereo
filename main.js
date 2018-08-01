@@ -9,7 +9,7 @@ let tray;
 const index = `file://${__dirname}/index.html`
 
 function createWindow() {
-  win = new BrowserWindow({width: 100, height: 100, resizable: false, frame: false, hide: true});
+  win = new BrowserWindow({width: 100, height: 100, resizable: false, frame: false, show: false });
   win.loadURL(index);
 
   win.on('closed', () => {

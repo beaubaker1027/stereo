@@ -1,0 +1,22 @@
+{
+  "name": "stereo",
+  "version": "0.1.0",
+  "description": "a basic music player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beaubaker1027/stereo.git"
+  },
+  "author": "laika <beaubaker1027@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/beaubaker1027/stereo/issues"
+  },
+  "homepage": "https://github.com/beaubaker1027/stereo#readme",
+  "dependencies": {
+    "electron": "^2.0.6"
+  }
+}

@@ -9,7 +9,7 @@ let tray;
 const index = `file://${__dirname}/index.html`
 
 function createWindow() {
-  win = new BrowserWindow({width: 100, height: 100, resizable: false, frame: false, show: false });
+  win = new BrowserWindow({width: 100, height: 100, resizable: true, frame: false, show: true });
   win.loadURL(index);
 
   win.on('closed', () => {
@@ -25,24 +25,37 @@ function createTray() {
       submenu: [
         {
           label: '▶︎',
-          type: 'radio',
+          type: 'normal',
           click: () => { win.webContents.send('audioCommand', 'play')}
         },
         {
           label: '||',
-          type: 'radio',
+          type: 'normal',
           click: () => { win.webContents.send('audioCommand', 'pause')}
         },
         {
           label: '\u25a0',
-          type: 'radio',
+          type: 'normal',
           click: () => { win.webContents.send('audioCommand', 'stop')}
         },
         {
-          label: '▷', type: 'radio'
+          label: '▷',
+          type: 'normal',
+          click: () => { win.webContents.send('audioCommand', 'next')}
         },
         {
-          label: '◁', type: 'radio'
+          label: '◁',
+          type: 'normal',
+          click: () => { win.webContents.send('audioCommand', 'previous')}
+        }
+      ]
+    },
+    {
+      label: 'Add',
+      submenu: [
+        {
+          label: 'Open Folder',
+          type: 'normal'
         }
       ]
     }
@@ -53,14 +66,23 @@ function createTray() {
   tray.setContextMenu(contextMenu);
   tray.on('drop-files', (event, files) => {
     let notification = new Notification({});
-    let songName = path.basename(files[0]);
-    win.webContents.send('checkAudio', files[0]);
+    let fileArray = []
+    for(i = 0; i< files.length; i++){
+      let file = {
+        path: '',
+        base: ''
+      }
+      file.path = files[i];
+      file.base = path.basename(files[i]);
+    fileArray.push(file);
+    }
+    win.webContents.send('checkAudio', fileArray);
     ipcMain.on('isAudio?', (event, arg) => {
       console.log(arg)
-      if(arg == true) {
+      if(arg.arg1 == true) {
         let seperate = files[0].split('/');
         notification.title = 'Currently Playing:';
-        notification.body = songName;
+        notification.body = arg.arg2;
         /*let notification = new Notification({
           title: 'Song',
           body: songName
@@ -74,7 +96,7 @@ function createTray() {
   })
 
 }
-app.dock.hide();
+//app.dock.hide();
 app.on('ready', () => {
   createTray();
   createWindow();

@@ -14,7 +14,7 @@ let tray;
 let notification;
 let tracks = [];
 
-// reads a directory
+// read a directory
 let readDir = function(file){
   if(!Array.isArray(file)){ return alert('dropped file is not an array'); };
   let dir = file;
@@ -32,9 +32,10 @@ let readDir = function(file){
   }
 }
 
+//create window
 function createWindow() {
   console.log('Creating Window...')
-  win = new BrowserWindow({width: 100, height: 100, resizable: true, frame: false, show: true });
+  win = new BrowserWindow({width: 100, height: 100, resizable: false, frame: false, show: false });
   win.loadURL(index);
 
   win.on('closed', () => {
@@ -42,6 +43,7 @@ function createWindow() {
   })
 }
 
+//create a tray
 function createTray() {
   console.log('Creating Tray...')
   tray = new Tray(iconPath);
@@ -118,10 +120,6 @@ function createTray() {
         notification.title = 'Currently Playing:';
         notification.body = arg.arg2;
         notification.icon = 'Img/casette.png';
-        /*let notification = new Notification({
-          title: 'Song',
-          body: songName
-        })*/
       } else {
         notification.title = 'Error',
         notification.body = 'File: '+arg.arg2+' is not audio'

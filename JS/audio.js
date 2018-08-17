@@ -1,11 +1,6 @@
 const {ipcRenderer} = require('electron');
 
-var _audio;
-var _fileArray;
-var current;
-var i;
-var isAudio;
-var basename;
+const audio = new Audio;
 
 var AudioClass = {
 
@@ -15,185 +10,159 @@ var AudioClass = {
   track: 0,
   isAudio: '',
   basename: null,
-  _audio: new Audio,
+  _audio: audio,
 
-  //get _audio
-  getAudio(){
-    return this._audio;
+  //get path to current track
+  get _path(){
+    return this._fileArray[this.track].path;
   },
 
-  //set _audio
-  setAudio(path){
+  //get current time
+  get getCurrentTime(){
+    return this._audio.currentTime;
+  },
+
+  //set current time
+  set setCurrentTime(int){
+    this._audio.currentTime = int;
+  },
+
+  //get audio source
+  get audio(){
+    return this._audio.src;
+  },
+
+  //set _audio source
+  set audio(path){
     this._audio.src = path;
-  },
-
-  //gets current time of audio track
-  getCurrentTime(){
-    return this.getAudio().currentTime;
-  },
-
-  //sets current time of audio track
-  setCurrentTime(int){
-    this.getAudio().currentTime = int;
-  },
-
-  //get _fileArray
-  getFileArray(){
-    return this._fileArray;
-  },
-
-  //set _fileArray
-  setFileArray(file){
-    this._fileArray = file;
-  },
-
-  //get current
-  getCurrent(){
-    return this.current;
-  },
-
-  //set current
-  setCurrent(current){
-    this.current = current;
-  },
-
-  //get track
-  getTrack(){
-    return this.track;
-  },
-
-  //sets track to zero
-  resetTrack(){
-    this.track = 0;
-  },
-  //set track
-  setTrack(int){
-    this.track += int;
-  },
-
-  //get isAudio
-  getIsAudio(){
-    console.log(this.isAudio);
-    return this.isAudio;
-  },
-
-  //set isAudio
-  setIsAudio(bool){
-    this.isAudio = bool;
-    console.log(this.isAudio);
-  },
-
-  //get path of current track
-  getPath(){
-    console.log(this.getFileArray()[this.getTrack()].path);
-    return this.getFileArray()[this.getTrack()].path;
+    this._audio.load();
   },
 
   //get basename
-  getBasename(){
+  get getBasename(){
     if(this.basename === null){
-      this.setBasename(this.getFileArray(), this.getTrack());
+      this.basename = this.fileArray[this.track].base;
     }
     return this.basename;
   },
 
   //set basename
-  setBasename(fileArray, track){
-    this.basename = fileArray[track].base;
+  set setBasename(path){
+    this.basename = path;
+  },
+
+  //resets track to 0
+  resetTrack(){
+    this.track = 0;
   },
 
   //skip to next track
-  // problem with skipping last song and first song stops working
   nextTrack(){
-    if((this.getTrack() + 1) >= this.getFileArray().length){
+    if((this.track + 1) >= this._fileArray.length){
+      this.setCurrentTime = 0;
       this.stopAudio();
       return;
     }
-    this.setTrack(1);
-    this.setAudio(this.getPath());
+    this.track++;
+    console.log('track = '+this.track);
+    console.log(this._path);
+    this.audio = this._path;
     this.playAudio();
   },
 
   //play previous track
   previousTrack(){
-    let currentTrack = this.getAudio();
-    if(currentTrack.currentTime > 2 || this.getTrack() == 0){
-      currentTrack.currentTime = 0;
+    if(this.getCurrentTime > 2 || this.track == 0){
+      this.setCurrentTime = 0;
     } else {
-      this.setTrack(-1);
-      this.setAudio(this.getPath());
+      this.track--;
+      this.audio = this._path;
     }
     this.playAudio();
   },
 
   //stop audio
   stopAudio(){
-    let audio = this.getAudio();
-    if(audio.src !== undefined){(audio.currentTime == 0)? (this.resetTrack(), this.setAudio(this.getPath())) : (audio.pause(), this.setCurrentTime(0)) }
+    this._audio.pause();
+    let currentTime = this.getCurrentTime;
+    if(this.audio !== undefined){(currentTime == 0)? (this.resetTrack(), this.audio = this._path, this.current = '') : (this.setCurrentTime = 0, this.current = '') }
   },
 
+  //pause audio
+  pauseAudio(){
+    this._audio.pause();
+    this.current = 'pause';
+  },
   //play audio from fileArray paths
   playAudio(){
-    this.getAudio().play().then(() => {
-      this.setIsAudio(true);
-      this.setCurrent('play');
-      this.setBasename(this.getFileArray(), this.getTrack());
+    let audio = this._audio;
+    this.audio = this._path;
+    if(audio.src === ''){ return; }
+    this.setBasename = this._fileArray[this.track].base;
+    console.log('loading...')
+    audio.play().then(() => {
+      console.log('Playing!')
+      this.isAudio = true;
+      this.current = 'play';
       this.send();
+      audio.onended = function(){
+
+        AudioClass.nextTrack();
+        return;
+      }
     }).catch((error) => {
       console.log(error);
-      this.setIsAudio(false);
-      this.setCurrent('');
+      this.isAudio = false;
+      this.current = '';
       this.send();
       this.nextTrack();
     });
-    this.endedListener();
   },
 
   //listens for track ended
   endedListener() {
-    this.getAudio().addEventListener('ended', () => {
-      if(this.getTrack()+1 < this.getFileArray().length){
-        this.setTrack(1);
-      } else {
-        this.stopAudio();
-        return
-      }
-      this.playAudio();
+    this._audio.addEventListener('ended', () => {
+      this.nextTrack();
+      return;
     })
   },
 
   //send arguments to Main Process for notification
   send(){
     arguments = {
-      arg1: this.getIsAudio(),
-      arg2: this.getBasename()
+      arg1: this.isAudio,
+      arg2: this.getBasename
     }
     ipcRenderer.send('isAudio?', arguments);
   },
 }
 
 ipcRenderer.on('checkAudio', (event, fileArray) => {
-  AudioClass.setFileArray(fileArray);
+  AudioClass._fileArray = fileArray;
   AudioClass.stopAudio();
   AudioClass.resetTrack();
-  AudioClass.setAudio(AudioClass.getPath());
+  AudioClass.audio = this._path;
   AudioClass.playAudio();
 })
 
 ipcRenderer.on('audioCommand', (event, arg) => {
-  if(AudioClass.getAudio() != null){
+  if(AudioClass._audio != null){
     switch(arg){
       case 'pause':
-        AudioClass.getAudio().pause();
+        AudioClass.pauseAudio();
         break;
       case 'play':
-        if(AudioClass.getCurrent() !== 'play'){
-          AudioClass.getAudio().play()
+        if(AudioClass.current !== 'play'){
+          if(AudioClass.current === 'pause'){
+            AudioClass._audio.play();
+          } else {
+            AudioClass.playAudio();
+          }
         }
         break;
       case 'stop':
       AudioClass.stopAudio();
-      AudioClass.setCurrent('');
+      AudioClass.current = '';
       break;
       case 'next':
       AudioClass.nextTrack();

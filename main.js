@@ -1,14 +1,39 @@
 const {app, Tray, Notification, Menu, BrowserWindow, webContents, ipcMain } = require('electron');
 const path = require('path');
 const url = require('url');
+const fs = require('fs');
+
+
+const index = `file://${__dirname}/index.html`
 const iconPath = path.join(__dirname, '/Img/casette.png');
+const extension = ['.wav', '.mp3', '.ogg', '.m4a', '.aiff', '.au', '.pcm', '.l16', '.webm', '.mp4', '.aac', '.m4p', '.m4b', '.m4r', '.m4v', '.flac' ];
+
 
 let win;
 let tray;
+let notification;
+let tracks = [];
 
-const index = `file://${__dirname}/index.html`
+// reads a directory
+let readDir = function(file){
+  if(!Array.isArray(file)){ return alert('dropped file is not an array'); };
+  let dir = file;
+  for(el = 0; el < dir.length; el++){
+    base = path.parse(dir[el]).base;
+    supported = extension.includes(path.parse(dir[el]).ext.toString());
+    if(base === '.DS_Store'){ continue; };
+    if(fs.statSync(dir[el]).isDirectory()){
+      fs.readdirSync(dir[el]).forEach(file => {
+        dir.splice((el+1), 0, dir[el]+'/'+file)
+      })
+      continue;
+    }
+    if(supported){tracks.push(dir[el]);};
+  }
+}
 
 function createWindow() {
+  console.log('Creating Window...')
   win = new BrowserWindow({width: 100, height: 100, resizable: true, frame: false, show: true });
   win.loadURL(index);
 
@@ -18,6 +43,7 @@ function createWindow() {
 }
 
 function createTray() {
+  console.log('Creating Tray...')
   tray = new Tray(iconPath);
   let template = [
     {
@@ -62,34 +88,43 @@ function createTray() {
   ]
   const contextMenu = Menu.buildFromTemplate(template);
 
-  tray.setToolTip('A basic Music Player');
+  tray.setToolTip('Stereo: A basic Music Player');
+  tray.setHighlightMode('never');
   tray.setContextMenu(contextMenu);
+
+  //drop a file into
   tray.on('drop-files', (event, files) => {
-    let notification = new Notification({});
-    let fileArray = []
-    for(i = 0; i< files.length; i++){
+    tracks = [];
+    readDir(files);
+    let fileArray = [];
+    tracks.reverse();
+    console.log(tracks);
+    for(i = 0; i< tracks.length; i++){
       let file = {
         path: '',
         base: ''
       }
-      file.path = files[i];
-      file.base = path.basename(files[i]);
+      file.path = tracks[i];
+      file.base = path.basename(tracks[i]);
     fileArray.push(file);
     }
     win.webContents.send('checkAudio', fileArray);
+
+    //display notification
     ipcMain.on('isAudio?', (event, arg) => {
-      console.log(arg)
+        notification.close();
       if(arg.arg1 == true) {
         let seperate = files[0].split('/');
         notification.title = 'Currently Playing:';
         notification.body = arg.arg2;
+        notification.icon = 'Img/casette.png';
         /*let notification = new Notification({
           title: 'Song',
           body: songName
         })*/
       } else {
         notification.title = 'Error',
-        notification.body = 'File is not audio'
+        notification.body = 'File: '+arg.arg2+' is not audio'
       }
       notification.show();
     })
@@ -98,8 +133,12 @@ function createTray() {
 }
 //app.dock.hide();
 app.on('ready', () => {
+  console.log('New Casette Initializing...');
+  notification = new Notification({});
   createTray();
+  console.log('Tray created!');
   createWindow();
+  console.log('Window Created!');
 });
 
 app.on('window-all-closed', () => {

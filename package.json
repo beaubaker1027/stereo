@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/beaubaker1027/stereo#readme",
   "dependencies": {
-    "electron": "^2.0.6"
+    "electron": "^2.0.8"
   }
 }
